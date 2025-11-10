@@ -1,4 +1,4 @@
-# check_dror.py (מעודכן עבור עמודה G)
+# check_dror.py (מעודכן עם טיפול מיוחד לעמודת 'אחר')
 
 import os
 import sys
@@ -9,14 +9,14 @@ CREDENTIALS_FILE = 'gsheets_credentials.json'
 SPREADSHEET_ID = os.environ.get('SPREADSHEET_ID')
 CHILD_NAME = os.environ.get('CHILD_NAME')
 
-# רשימת הסטטוסים שמפעילים התראה (כשל)
-STATUSES_TO_ALERT_ON = ['❌️', '🟰', '‼️', ''] # הוספנו תא ריק (ריק) ככישלון
+# רשימת הסטטוסים שמפעילים התראה בפריטים הרגילים (בגדים, משחה וכו')
+STATUSES_TO_ALERT_ON = ['❌️', '🟰', '‼️', ''] # כולל ריק כבעיה רגילה
 # --- סוף הגדרות ---
 
-# לפי ההערה, העמודה של השמות היא G. אם סופרים מ-A (0) עד F (5) ו-G (6).
-NAME_COLUMN_INDEX = 6 
-# עמודות הציוד הן האינדקסים משמאל לשם (0 עד 5)
-LAST_SUPPLY_INDEX = 5 
+NAME_COLUMN_INDEX = 6       # עמודה G
+LAST_SUPPLY_INDEX = 5       # עמודה F (טיטולים)
+FIRST_SUPPLY_INDEX = 1      # עמודה B (בגדים) - מתחילים מפריט זה בבדיקה הרגילה
+OTHER_COLUMN_INDEX = 0      # עמודה A (אחר) - דורשת טיפול מיוחד
 
 
 def check_child_supplies_status():
@@ -34,46 +34,49 @@ def check_child_supplies_status():
             print("הגיליון ריק.")
             sys.exit(1)
 
-        headers = data[0] # השורה הראשונה מכילה את שמות הציוד
+        headers = data[0] 
         
         # 3. מציאת שורת הילד (חיפוש רק בעמודה NAME_COLUMN_INDEX)
         child_row = None
-        
         for row in data:
-            # ודא שהשורה מכילה מספיק עמודות כדי להגיע ל-G
             if len(row) > NAME_COLUMN_INDEX and row[NAME_COLUMN_INDEX].strip() == CHILD_NAME:
                 child_row = row
                 break
         
-        # 4. אם שם הילד לא נמצא בעמודה G, נכשל
+        # 4. אם שם הילד לא נמצא
         if child_row is None:
             print(f"⚠️ אזהרה: השם '{CHILD_NAME}' לא נמצא בעמודה G (אינדקס {NAME_COLUMN_INDEX}).")
-            # הדפסת הכותרות והשורות לדוגמה כדי לגלות פערים
-            print(f"DEBUG: Headers (Row 1): {headers}")
-            print(f"DEBUG: First 3 data rows: {data[1:4]}")
             sys.exit(1)
         
-        # *** DEBUG קריטי: נותן לנו את השורה הנכונה ***
+        # *** DEBUG ***
         print(f"DEBUG: Found '{CHILD_NAME}' at index {NAME_COLUMN_INDEX}.")
         print(f"DEBUG: Full data row: {child_row}")
         
-        # 5. בדיקת סטטוסים: עוברים על העמודות משמאל לשם (0 עד LAST_SUPPLY_INDEX=5)
         missing_items = []
         
-        # טווח הבדיקה הוא מאינדקס 0 עד 5
-        for i in range(LAST_SUPPLY_INDEX + 1): 
+        # 5. בדיקה מיוחדת לעמודת 'אחר' (אינדקס 0)
+        # אם התא אינו ריק (יש שם טקסט/תוכן כלשהו), צריך התראה
+        other_status = child_row[OTHER_COLUMN_INDEX].strip()
+        other_name = headers[OTHER_COLUMN_INDEX].strip()
+        
+        if other_status != '':
+            # התא אינו ריק. יש שם הערה, או תוכן כלשהו שמחייב בדיקה.
+            missing_items.append(f"{other_name} ({other_status} - דורש בדיקה)")
+            
+        # 6. בדיקת סטטוסים רגילים: עוברים על העמודות 1 עד 5 (בגדים עד טיטולים)
+        # הטווח הוא מ-FIRST_SUPPLY_INDEX (1) עד LAST_SUPPLY_INDEX (5)
+        for i in range(FIRST_SUPPLY_INDEX, LAST_SUPPLY_INDEX + 1):
             if i >= len(headers) or i >= len(child_row):
                  continue
 
             item_name = headers[i].strip()
             item_status = child_row[i].strip()
             
-            # בדיקת סטטוס מול רשימת האזהרה
+            # בדיקת סטטוס מול רשימת האזהרה (כולל ריק)
             if item_status in STATUSES_TO_ALERT_ON: 
-                # אם הסטטוס ריק או שהוא סטטוס אזהרה
                 missing_items.append(f"{item_name} ({item_status if item_status else 'ריק'})")
         
-        # 6. סיכום והחלטה
+        # 7. סיכום והחלטה
         if missing_items:
             alert_message = f"🚨 חסר ציוד קריטי עבור {CHILD_NAME}:\n"
             alert_message += "\n".join(missing_items)
@@ -81,7 +84,7 @@ def check_child_supplies_status():
             print(alert_message)
             sys.exit(1) 
         
-        # 7. הצלחה
+        # 8. הצלחה
         print(f"✅ הכל תקין עבור {CHILD_NAME}. לא נדרשת התראה.")
         
     except Exception as e:
