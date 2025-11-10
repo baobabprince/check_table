@@ -4,47 +4,82 @@ import os
 import sys
 import gspread
 
-# קובץ ה-credentials נוצר באופן זמני ע"י ה-Action מתוך ה-Secret
-CREDENTIALS_FILE = 'gsheets_credentials.json' 
+# --- הגדרות ---
+CREDENTIALS_FILE = 'gsheets_credentials.json'
 SPREADSHEET_ID = os.environ.get('SPREADSHEET_ID')
-SHEET_NAME = 'Sheet1' # **שנה לשם הגיליון המדויק**
-CHILD_NAME = os.environ.get('CHILD_NAME') # **משתנה חדש: קבלת שם הילד**
+SHEET_NAME = 'Sheet1' # **וודא שזהו שם הגיליון הנכון**
+CHILD_NAME = os.environ.get('CHILD_NAME')
 
-def check_dror_status():
-    """ מתחבר לגיליון, בודק תא A2, ונכשל אם הוא ריק. """
+# רשימת הסטטוסים שמפעילים התראה (כשל)
+STATUSES_TO_ALERT_ON = ['❌️', '🟰', '‼️'] 
+# --- סוף הגדרות ---
+
+
+def check_child_supplies_status():
+    """ מתחבר לגיליון, מאתר את שורת הילד, ובודק את כל עמודות הציוד עבור סימני אזהרה. """
     try:
-        # התחברות ל-Google Sheets באמצעות חשבון השירות
+        # 1. התחברות ל-Google Sheets
         gc = gspread.service_account(filename=CREDENTIALS_FILE)
         spreadsheet = gc.open_by_key(SPREADSHEET_ID)
         worksheet = spreadsheet.worksheet(SHEET_NAME) 
 
-        # קריאת כל הנתונים 
+        # 2. קריאת כל הנתונים 
         data = worksheet.get_all_values()
         
-        # --- לוגיקת בדיקה: בודקת האם תא A2 ריק (שורה 2, עמודה 1) ---
+        if not data:
+            print("הגיליון ריק.")
+            return
+
+        # כותרות: השורה הראשונה
+        headers = data[0]
         
-        # ודא שהגיליון גדול מספיק
-        if len(data) < 2 or len(data[1]) < 1:
-             print("הגיליון קטן מדי לבדיקה או ריק.")
-             return 
+        # 3. מציאת האינדקס של שורת הילד
+        child_row = None
+        for row in data:
+            # נניח ששם הילד נמצא בעמודה הראשונה
+            if row and row[0].strip() == CHILD_NAME:
+                child_row = row
+                break
+        
+        if not child_row:
+            print(f"⚠️ אזהרה: השם '{CHILD_NAME}' לא נמצא בגיליון.")
+            # במקרה של אי מציאת השם, נכשל טכנית
+            sys.exit(1)
 
-        # גישה לערך בתא A2 (אינדקסים 1, 0)
-        target_cell_value = data[1][0] 
+        # 4. מציאת טווח הבדיקה
+        # נניח שהבדיקה מתחילה אחרי עמודת ה'שם' וה'נכון ל:'
+        # נבדוק החל מהעמודה השנייה (אינדקס 2)
+        
+        missing_items = []
+        # מתחילים מהעמודה השנייה או השלישית, תלוי איך הגיליון מוגדר.
+        # בדוגמה ששלחת, הציוד מתחיל בעמודה השלישית (אחרי השם ושדה התאריך/נכון ל:)
+        
+        # נחפש את הציוד החל מהאינדקס 2 (כלומר, העמודה השלישית 'אחרתמ"ל')
+        START_INDEX_FOR_SUPPLIES = 2 
 
-        # בדיקה: אם התא ריק (לאחר הסרת רווחים) - זה חסר!
-        if not target_cell_value.strip(): 
-            print(f"🚨 התראה: חסר נתון משמעותי עבור {CHILD_NAME} בגיליון.")
-            # ** יציאה עם קוד 1 מכשילה את ה-Action ומפעילה את ה-Telegram **
+        for i in range(START_INDEX_FOR_SUPPLIES, len(headers)):
+            item_name = headers[i].strip()
+            item_status = child_row[i].strip() if i < len(child_row) else ""
+            
+            # 5. בדיקת סטטוס מול רשימת האזהרה
+            if item_status in STATUSES_TO_ALERT_ON:
+                missing_items.append(f"{item_name} ({item_status})")
+        
+        # 6. סיכום והחלטה
+        if missing_items:
+            alert_message = f"🚨 חסר ציוד קריטי עבור {CHILD_NAME}:\n"
+            alert_message += "\n".join(missing_items)
+            
+            print(alert_message)
+            # ** יציאה עם קוד 1 מכשילה את ה-Action **
             sys.exit(1) 
         
-        # -----------------------------------------------------------
-        
+        # 7. הצלחה
         print(f"✅ הכל תקין עבור {CHILD_NAME}. לא נדרשת התראה.")
         
     except Exception as e:
-        # כשל טכני בגישה לגיליון - נרצה התראה גם על זה
-        print(f"⚠️ אירעה שגיאה בגישה לגיליון: {e}")
+        print(f"⚠️ שגיאה כללית: {e}")
         sys.exit(1) 
 
 if __name__ == "__main__":
-    check_dror_status()
+    check_child_supplies_status()
