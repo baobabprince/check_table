@@ -1,11 +1,10 @@
-name: Daily Dror Check
+# .github/workflows/check_dror.yml
+
+name: Daily Child Data Check
 
 on:
-  # הפעלת הוורקפלו כל יום בשעה 09:00 (UTC)
-  # 09:00 UTC = 11:00 שעון ישראל (בזמן שעון קיץ)
   schedule:
-    - cron: '0 5 * * *' 
-  # מאפשר הפעלה ידנית לצורך בדיקה (ב-Actions tab)
+    - cron: '0 9 * * *' 
   workflow_dispatch:
 
 jobs:
@@ -15,29 +14,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # הגדרת סביבת Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
-      # התקנת ספריית gspread הנדרשת
       - name: Install dependencies
         run: pip install gspread
 
-      # יצירת קובץ Credentials זמני מתוך ה-Secret
       - name: Create Google Service Account Credentials file
         run: echo '${{ secrets.GOOGLE_CREDENTIALS }}' > gsheets_credentials.json
 
       # 1. הרצת סקריפט הבדיקה. 
-      # אם יציאה עם קוד 1, ה-Job נכשל.
-      - name: Run Dror check script
-        id: dror_check
+      # ** שימו לב ל CHILD_NAME שנוסף ל-env **
+      - name: Run Child check script
+        id: child_check
         run: python check_dror.py
         env:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          CHILD_NAME: ${{ secrets.CHILD_NAME }} # ** מוסר את שם הילד לסקריפט **
         
-      # 2. שליחת התראה לטלגרם - מופעל רק אם השלב הקודם נכשל (failure())
+      # 2. שליחת התראה לטלגרם - שימוש ב-CHILD_NAME בתוך ההודעה
       - name: Send Telegram Alert on Failure
         if: ${{ failure() }} 
         uses: appleboy/telegram-action@master
@@ -45,6 +42,6 @@ jobs:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           message: |
-            🚨 *התראה! נתון חיוני חסר לדרור בגיליון!* אנא בדוק בהקדם:
+            🚨 *התראה! נתון חיוני חסר עבור ${{ secrets.CHILD_NAME }} בגיליון!* אנא בדוק בהקדם:
             [לחץ כאן לגיליון](https://docs.google.com/spreadsheets/d/${{ secrets.SPREADSHEET_ID }}/edit)
-          format: markdown # שימוש בפורמט Markdown לכותרת מודגשת ולינק
+          format: markdown
