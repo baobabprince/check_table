@@ -1,0 +1,50 @@
+name: Daily Dror Check
+
+on:
+  # הפעלת הוורקפלו כל יום בשעה 09:00 (UTC)
+  # 09:00 UTC = 11:00 שעון ישראל (בזמן שעון קיץ)
+  schedule:
+    - cron: '0 5 * * *' 
+  # מאפשר הפעלה ידנית לצורך בדיקה (ב-Actions tab)
+  workflow_dispatch:
+
+jobs:
+  check_data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # הגדרת סביבת Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # התקנת ספריית gspread הנדרשת
+      - name: Install dependencies
+        run: pip install gspread
+
+      # יצירת קובץ Credentials זמני מתוך ה-Secret
+      - name: Create Google Service Account Credentials file
+        run: echo '${{ secrets.GOOGLE_CREDENTIALS }}' > gsheets_credentials.json
+
+      # 1. הרצת סקריפט הבדיקה. 
+      # אם יציאה עם קוד 1, ה-Job נכשל.
+      - name: Run Dror check script
+        id: dror_check
+        run: python check_dror.py
+        env:
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+        
+      # 2. שליחת התראה לטלגרם - מופעל רק אם השלב הקודם נכשל (failure())
+      - name: Send Telegram Alert on Failure
+        if: ${{ failure() }} 
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message: |
+            🚨 *התראה! נתון חיוני חסר לדרור בגיליון!* אנא בדוק בהקדם:
+            [לחץ כאן לגיליון](https://docs.google.com/spreadsheets/d/${{ secrets.SPREADSHEET_ID }}/edit)
+          format: markdown # שימוש בפורמט Markdown לכותרת מודגשת ולינק
