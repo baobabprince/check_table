@@ -4,10 +4,11 @@ import os
 import sys
 import gspread
 
-# הקובץ נוצר באופן זמני ע"י ה-Action מתוך ה-Secret
+# קובץ ה-credentials נוצר באופן זמני ע"י ה-Action מתוך ה-Secret
 CREDENTIALS_FILE = 'gsheets_credentials.json' 
 SPREADSHEET_ID = os.environ.get('SPREADSHEET_ID')
 SHEET_NAME = 'Sheet1' # **שנה לשם הגיליון המדויק**
+CHILD_NAME = os.environ.get('CHILD_NAME') # **משתנה חדש: קבלת שם הילד**
 
 def check_dror_status():
     """ מתחבר לגיליון, בודק תא A2, ונכשל אם הוא ריק. """
@@ -15,7 +16,6 @@ def check_dror_status():
         # התחברות ל-Google Sheets באמצעות חשבון השירות
         gc = gspread.service_account(filename=CREDENTIALS_FILE)
         spreadsheet = gc.open_by_key(SPREADSHEET_ID)
-        # פתיחת הגיליון הספציפי
         worksheet = spreadsheet.worksheet(SHEET_NAME) 
 
         # קריאת כל הנתונים 
@@ -31,15 +31,15 @@ def check_dror_status():
         # גישה לערך בתא A2 (אינדקסים 1, 0)
         target_cell_value = data[1][0] 
 
-        # בדיקה: אם התא ריק (לאחר הסרת רווחים) - זה חסר לדרור!
+        # בדיקה: אם התא ריק (לאחר הסרת רווחים) - זה חסר!
         if not target_cell_value.strip(): 
-            print("🚨 התראה: חסר נתון משמעותי לדרור בגיליון.")
+            print(f"🚨 התראה: חסר נתון משמעותי עבור {CHILD_NAME} בגיליון.")
             # ** יציאה עם קוד 1 מכשילה את ה-Action ומפעילה את ה-Telegram **
             sys.exit(1) 
         
         # -----------------------------------------------------------
         
-        print("✅ הכל תקין. לא נדרשת התראה.")
+        print(f"✅ הכל תקין עבור {CHILD_NAME}. לא נדרשת התראה.")
         
     except Exception as e:
         # כשל טכני בגישה לגיליון - נרצה התראה גם על זה
