@@ -1,4 +1,4 @@
-# check_dror.py
+# check_dror.py (מעודכן עבור מבנה RTL)
 
 import os
 import sys
@@ -13,54 +13,56 @@ CHILD_NAME = os.environ.get('CHILD_NAME')
 STATUSES_TO_ALERT_ON = ['❌️', '🟰', '‼️'] 
 # --- סוף הגדרות ---
 
+# אינדקסים בהנחה שיש 6 עמודות סך הכל (0-5)
+NAME_COLUMN_INDEX = 5 # העמודה האחרונה מימין מכילה את השמות
+LAST_SUPPLY_INDEX = 4 # העמודה של 'טיטולים' (הכי רחוק מהשמות)
 
 def check_child_supplies_status():
-    """ מתחבר לגיליון הראשון (אינדקס 0), מאתר את שורת הילד, ובודק את הסטטוסים. """
+    """ מתחבר לגיליון, מאתר את שורת הילד במבנה RTL, ובודק את הסטטוסים. """
     try:
-        # 1. התחברות ל-Google Sheets
+        # 1. התחברות וגישה לגיליון הראשון (אינדקס 0)
         gc = gspread.service_account(filename=CREDENTIALS_FILE)
         spreadsheet = gc.open_by_key(SPREADSHEET_ID)
-        
-        # 2. **שינוי כאן:** גישה לחוברת העבודה הראשונה לפי אינדקס (0)
-        # במקום: worksheet = spreadsheet.worksheet(SHEET_NAME) 
         worksheet = spreadsheet.get_worksheet(0) 
 
-        # 3. קריאת כל הנתונים 
+        # 2. קריאת כל הנתונים
         data = worksheet.get_all_values()
         
         if not data:
             print("הגיליון ריק.")
             return
 
-        headers = data[0]
+        headers = data[0] # השורה הראשונה מכילה את שמות הציוד
         
-        # 4. מציאת האינדקס של שורת הילד
+        # 3. מציאת שורת הילד (השם נמצא בעמודה 5 - NAME_COLUMN_INDEX)
         child_row = None
         for row in data:
-            # נניח ששם הילד נמצא בעמודה הראשונה
-            if row and row[0].strip() == CHILD_NAME:
+            # ודא שהשורה קיימת ושיש בה מספיק עמודות
+            if len(row) > NAME_COLUMN_INDEX and row[NAME_COLUMN_INDEX].strip() == CHILD_NAME:
                 child_row = row
                 break
         
         if not child_row:
-            print(f"⚠️ אזהרה: השם '{CHILD_NAME}' לא נמצא בגיליון.")
+            print(f"⚠️ אזהרה: השם '{CHILD_NAME}' לא נמצא בעמודה הנכונה בגיליון.")
             sys.exit(1)
 
-        # 5. מציאת טווח הבדיקה
-        # נבדוק החל מהעמודה השלישית ('אחרתמ"ל', אינדקס 2)
-        START_INDEX_FOR_SUPPLIES = 2 
-
+        # 4. בדיקת סטטוסים (עובר על העמודות של הציוד מ-0 עד 4)
         missing_items = []
+        
+        # עוברים על העמודות משמאל לימין (אינדקס 0 עד LAST_SUPPLY_INDEX)
+        for i in range(LAST_SUPPLY_INDEX + 1): # כולל את LAST_SUPPLY_INDEX (אינדקס 4)
+            if i >= len(headers) or i >= len(child_row):
+                 # הגנה מפני שורות לא שלמות
+                 continue
 
-        for i in range(START_INDEX_FOR_SUPPLIES, len(headers)):
             item_name = headers[i].strip()
-            item_status = child_row[i].strip() if i < len(child_row) else ""
+            item_status = child_row[i].strip()
             
-            # 6. בדיקת סטטוס מול רשימת האזהרה
+            # בדיקת סטטוס מול רשימת האזהרה
             if item_status in STATUSES_TO_ALERT_ON:
                 missing_items.append(f"{item_name} ({item_status})")
         
-        # 7. סיכום והחלטה
+        # 5. סיכום והחלטה
         if missing_items:
             alert_message = f"🚨 חסר ציוד קריטי עבור {CHILD_NAME}:\n"
             alert_message += "\n".join(missing_items)
@@ -68,7 +70,7 @@ def check_child_supplies_status():
             print(alert_message)
             sys.exit(1) 
         
-        # 8. הצלחה
+        # 6. הצלחה
         print(f"✅ הכל תקין עבור {CHILD_NAME}. לא נדרשת התראה.")
         
     except Exception as e:
