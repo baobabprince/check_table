@@ -37,7 +37,7 @@ jobs:
         env:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
           # ⭐️ תיקון 1: שימוש נכון בפונקציית default כמשתנה סביבה (ללא סוגריים)
-          CHILD_NAME: ${{ github.event.inputs.child_name.default }}${{ secrets.DEFAULT_CHILD_NAME }} # ⬅️ קו 44 מתוקן
+          CHILD_NAME: ${{ github.event.inputs.child_name.default }}${{ secrets.CHILD_NAME }} # ⬅️ קו 44 מתוקן
         
       # 2. שליחת התראה לטלגרם - שימוש בשם שנבחר
       - name: Send Telegram Alert on Failure
