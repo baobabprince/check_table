@@ -14,7 +14,7 @@ on:
       child_name:
         description: 'שם הילד לבדיקה (Child name to check)'
         required: true
-        default: ${{ secrets.GOOGLE_CREDENTIALS }}
+        default: ${{ secrets.CHILD_NAME }}
       
 jobs:
   check_data:
