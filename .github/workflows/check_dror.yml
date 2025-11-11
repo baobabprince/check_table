@@ -13,7 +13,6 @@ on:
     inputs:
       child_name:
         description: 'שם הילד לבדיקה (Child name to check)'
-        required: true
       
 jobs:
   check_data:
