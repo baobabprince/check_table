@@ -4,15 +4,16 @@ name: Daily Child Data Check
 
 on:
   # הפעלת הוורקפלו כל יום בשעה 09:00 (UTC)
-  # בשלב זה, ההרצה משתמשת בשם הילד המוגדר כברירת מחדל (דרור)
   schedule:
-    - cron: '0 7 * * *' 
+    - cron: '0 9 * * *'  
   
-  # ** שינוי: הוספת פרמטר קלט להרצה ידנית **
+  # ** שינוי: הסרת שם ברירת המחדל הגלוי **
   workflow_dispatch:
     inputs:
       child_name:
         description: 'שם הילד לבדיקה (Child name to check)'
+        required: false # אפשר הרצה ידנית ללא שם
+        # ברירת המחדל (דרור) מוגדרת כעת כ-Secret בתוך שלב ה-Job 
       
 jobs:
   check_data:
@@ -33,23 +34,23 @@ jobs:
         run: echo '${{ secrets.GOOGLE_CREDENTIALS }}' > gsheets_credentials.json
 
       # 1. הרצת סקריפט הבדיקה. 
-      # ** שינוי: מעביר את קלט המשתמש (או ברירת המחדל) לסקריפט **
       - name: Run Child check script
         id: child_check
         run: python check_dror.py
         env:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
-          # קבלת השם מקלט ההרצה הידנית
-          CHILD_NAME: ${{ github.event.inputs.child_name }} 
+          # ⭐️ תיקון: שימוש ב-Secret כערך ברירת המחדל!
+          # אם child_name נשלח (ידנית) - השתמש בו. אם לא (מתוזמן) - השתמש ב-DEFAULT_CHILD_NAME
+          CHILD_NAME: ${{ github.event.inputs.child_name | default(secrets.CHILD_NAME) }} 
         
       # 2. שליחת התראה לטלגרם - שימוש בשם שנבחר
       - name: Send Telegram Alert on Failure
-        if: ${{ failure() }} 
+        if: ${{ failure() }}  
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           message: |
-            🚨 *התראה! נתון חיוני חסר עבור ${{ github.event.inputs.child_name }} בגיליון!* אנא בדוק בהקדם:
+            🚨 *התראה! נתון חיוני חסר עבור ${{ github.event.inputs.child_name | default(secrets.CHILD_NAME) }} בגיליון!* אנא בדוק בהקדם:
             [לחץ כאן לגיליון](https://docs.google.com/spreadsheets/d/${{ secrets.SPREADSHEET_ID }}/edit)
           format: markdown
