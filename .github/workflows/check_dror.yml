@@ -14,7 +14,7 @@ on:
       child_name:
         description: 'שם הילד לבדיקה (Child name to check)'
         required: true
-        default: 'דרור' # שם ברירת המחדל לשימוש בהרצה ידנית
+        default: ${{ secrets.GOOGLE_CREDENTIALS }}
       
 jobs:
   check_data:
