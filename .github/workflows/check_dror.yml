@@ -47,6 +47,6 @@ jobs:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           message: |
-            🚨 *התראה! נתון חיוני חסר עבור ${{ github.event.inputs.child_name.default(secrets.DEFAULT_CHILD_NAME) }} בגיליון!* אנא בדוק בהקדם: # ⬅️ קו 53 מתוקן
+            🚨 *התראה! נתון חיוני חסר עבור ${{ github.event.inputs.child_name.default(secrets.CHILD_NAME) }} בגיליון!* אנא בדוק בהקדם: # ⬅️ קו 53 מתוקן
             [לחץ כאן לגיליון](https://docs.google.com/spreadsheets/d/${{ secrets.SPREADSHEET_ID }}/edit)
           format: markdown
