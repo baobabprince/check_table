@@ -33,7 +33,7 @@ jobs:
       # 1. הרצת סקריפט הבדיקה. 
       - name: Run Child check script
         id: child_check
-        run: python check_dror.py
+        run: python check_child.py
         env:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
           # ⭐️ תיקון 1: שימוש נכון בפונקציית default כמשתנה סביבה (היה כבר נכון)
