@@ -6,7 +6,7 @@ on:
   # הפעלת הוורקפלו כל יום בשעה 09:00 (UTC)
   # בשלב זה, ההרצה משתמשת בשם הילד המוגדר כברירת מחדל (דרור)
   schedule:
-    - cron: '0 9 * * *' 
+    - cron: '0 7 * * *' 
   
   # ** שינוי: הוספת פרמטר קלט להרצה ידנית **
   workflow_dispatch:
@@ -14,7 +14,6 @@ on:
       child_name:
         description: 'שם הילד לבדיקה (Child name to check)'
         required: true
-        default: ${{ secrets.CHILD_NAME }}
       
 jobs:
   check_data:
