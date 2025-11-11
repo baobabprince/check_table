@@ -36,8 +36,8 @@ jobs:
         run: python check_dror.py
         env:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
-          # ⭐️ תיקון 1: שימוש נכון בפונקציית default כמשתנה סביבה (ללא סוגריים)
-          CHILD_NAME: ${{ github.event.inputs.child_name.default }}${{ secrets.CHILD_NAME }} # ⬅️ קו 44 מתוקן
+          # ⭐️ תיקון 1: שימוש נכון בפונקציית default כמשתנה סביבה (היה כבר נכון)
+          CHILD_NAME: ${{ github.event.inputs.child_name.default }}${{ secrets.CHILD_NAME }} 
         
       # 2. שליחת התראה לטלגרם - שימוש בשם שנבחר
       - name: Send Telegram Alert on Failure
@@ -47,6 +47,6 @@ jobs:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           message: |
-            🚨 *התראה! נתון חיוני חסר עבור ${{ github.event.inputs.child_name.default(secrets.CHILD_NAME) }} בגיליון!* אנא בדוק בהקדם: # ⬅️ קו 53 מתוקן
+            🚨 *התראה! נתון חיוני חסר עבור ${{ github.event.inputs.child_name.default }}${{ secrets.CHILD_NAME }} בגיליון!* אנא בדוק בהקדם:
             [לחץ כאן לגיליון](https://docs.google.com/spreadsheets/d/${{ secrets.SPREADSHEET_ID }}/edit)
           format: markdown
