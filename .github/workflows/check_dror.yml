@@ -3,17 +3,14 @@
 name: Daily Child Data Check
 
 on:
-  # הפעלת הוורקפלו כל יום בשעה 09:00 (UTC)
   schedule:
-    - cron: '0 9 * * *'  
+    - cron: '0 9 * * *' 
   
-  # ** שינוי: הסרת שם ברירת המחדל הגלוי **
   workflow_dispatch:
     inputs:
       child_name:
         description: 'שם הילד לבדיקה (Child name to check)'
-        required: false # אפשר הרצה ידנית ללא שם
-        # ברירת המחדל (דרור) מוגדרת כעת כ-Secret בתוך שלב ה-Job 
+        required: false 
       
 jobs:
   check_data:
@@ -39,9 +36,8 @@ jobs:
         run: python check_dror.py
         env:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
-          # ⭐️ תיקון: שימוש ב-Secret כערך ברירת המחדל!
-          # אם child_name נשלח (ידנית) - השתמש בו. אם לא (מתוזמן) - השתמש ב-DEFAULT_CHILD_NAME
-          CHILD_NAME: ${{ github.event.inputs.child_name.default(secrets.CHILD_NAME) }}
+          # ⭐️ תיקון 1: שימוש נכון בפונקציית default כמשתנה סביבה (ללא סוגריים)
+          CHILD_NAME: ${{ github.event.inputs.child_name.default }}${{ secrets.DEFAULT_CHILD_NAME }} # ⬅️ קו 44 מתוקן
         
       # 2. שליחת התראה לטלגרם - שימוש בשם שנבחר
       - name: Send Telegram Alert on Failure
@@ -51,6 +47,6 @@ jobs:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           message: |
-            🚨 *התראה! נתון חיוני חסר עבור ${{ github.event.inputs.child_name | default(secrets.CHILD_NAME) }} בגיליון!* אנא בדוק בהקדם:
+            🚨 *התראה! נתון חיוני חסר עבור ${{ github.event.inputs.child_name.default(secrets.DEFAULT_CHILD_NAME) }} בגיליון!* אנא בדוק בהקדם: # ⬅️ קו 53 מתוקן
             [לחץ כאן לגיליון](https://docs.google.com/spreadsheets/d/${{ secrets.SPREADSHEET_ID }}/edit)
           format: markdown
