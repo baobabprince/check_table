@@ -41,7 +41,7 @@ jobs:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
           # ⭐️ תיקון: שימוש ב-Secret כערך ברירת המחדל!
           # אם child_name נשלח (ידנית) - השתמש בו. אם לא (מתוזמן) - השתמש ב-DEFAULT_CHILD_NAME
-          CHILD_NAME: ${{ github.event.inputs.child_name | default(secrets.CHILD_NAME) }} 
+          CHILD_NAME: ${{ github.event.inputs.child_name.default(secrets.CHILD_NAME) }}
         
       # 2. שליחת התראה לטלגרם - שימוש בשם שנבחר
       - name: Send Telegram Alert on Failure
