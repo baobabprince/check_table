@@ -1,4 +1,4 @@
-# .github/workflows/check_dror.yml
+# .github/workflows/check_child.yml
 
 name: Daily Child Data Check
 
